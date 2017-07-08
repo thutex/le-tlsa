@@ -5,6 +5,7 @@ Correctly Add/Update your TLSA records
 ## Getting Started
 
 Copy the tlsa-updater.sh script to your machine, edit the variables, and setup letsencrypt and cron
+ **Warning** script currently breaks things in multidomain setups!
 
 ### Prerequisites
 
@@ -24,8 +25,14 @@ This script assumes a few things for now:
 ## Usage
 
 Preferably: after letsencrypt (using renew-hook from letsencrypt) and daily from cron (tlsa-updater.sh --update)
-
 Possibly: by setting and uncommenting "RENEWED_DOMAINS" to manually update a zone (will become an option someday)
+
+## TODO
+
+- put error checking in place
+- use arguments for some things
+- make it compatible for multi-domain setups using the same mailserver (currently the records WILL break if the cert for TLSA and the cert for the mailserver are not the same...)
+
 
 ## Authors
 
