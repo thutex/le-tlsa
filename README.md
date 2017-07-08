@@ -15,7 +15,9 @@ This script assumes a few things for now:
 -> your TLSA records are encased between ;tlsa and ;aslt tags in the zonefile
 -> zonefiles are named domain.ext
 -> you use bind (and use inline-signing, there is no dnssec being done in this file)
+-> you use postfix
 -> your machine uses systemd (systemctl) to reload daemons
+-> you created all the directories that need to be used (will change in future revisions)
 -> you know (somewhat) what you're doing (because at this stage, there is almost no error checking in the script)
 ```
 
