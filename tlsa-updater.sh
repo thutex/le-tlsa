@@ -7,7 +7,7 @@
 #                it will finish the update.
 #author           :Bjorn Peeters (Thutex) - https://peeters.io
 #date           :2017070801
-#version           :0.1    
+#version           :0.2    
 #usage           :tlsa-updater.sh --new | --update
 #expects           :"zonefile" needs to be named domain.ext, tlsa records (if already present)
 #		             need to be between ;tlsa and ;aslt
@@ -17,7 +17,8 @@
 
 BINDDIR="/etc/bind"                   # directory to BIND
 CERTDIR="/etc/letsencrypt/live"       # directory to where the latest certificates lie, without the domainname
-CCDIR="/etc/letsencrypt/dane"        # directory where (for me) postfix looks for its current certificate, again without the domainname   
+MAILCERT=""                           # leave empty if you use the same certificate for both domain and mailserver, otherwise full path to fullchain.pem
+CCDIR="/etc/letsencrypt/dane"         # directory where postfix looks for its current certificate, again without the domainname   
 ZONEDIR="$BINDDIR/zones"              # where do you save your zonefiles?
 UPDATEDIR="$BINDDIR/updating"         # create this directory! it will save the temporary file for the new TLSA records until its old enough (checked by the --update param)
 WAITPERIOD="259200"                   # time in seconds before updating zonefile with only the new records, default is 3 days
@@ -27,7 +28,7 @@ WAITPERIOD="259200"                   # time in seconds before updating zonefile
 
 usage()
 {
-    echo "$0 v.01 : prepare and update TLSA records after letsencrypt updates a certificate"
+    echo "$0 : prepare and update TLSA records after letsencrypt updates a certificate"
     echo ""
     echo "$0"
     echo "\t-h --help (this - which is fairly useless for now)"
@@ -36,23 +37,31 @@ usage()
     echo ""
 }
 
-updated_tlsa()
+updated_mailtlsa()
 {
-# currently adds 3 1 1 TLSA records for DOMAIN and MAIL.DOMAIN on ports 22,25,443,465,587,993,995
-    echo "
-_22._tcp.$1. IN TLSA 3 1 1 $2
+# adds 3 1 1 TLSA records for DOMAIN and MAIL.DOMAIN on ports 25,465,587,993,995
+echo "
 _25._tcp.$1. IN TLSA 3 1 1 $2
 _25._tcp.mail.$1. IN TLSA 3 1 1 $2
-_443._tcp.$1. IN TLSA 3 1 1 $2
 _465._tcp.$1. IN TLSA 3 1 1 $2
-_587._tcp.$1. IN TLSA 3 1 1 $2
-_993._tcp.$1. IN TLSA 3 1 1 $2
-_995._tcp.$1. IN TLSA 3 1 1 $2
 _465._tcp.mail.$1. IN TLSA 3 1 1 $2
+_587._tcp.$1. IN TLSA 3 1 1 $2
 _587._tcp.mail.$1. IN TLSA 3 1 1 $2
+_993._tcp.$1. IN TLSA 3 1 1 $2
 _993._tcp.mail.$1. IN TLSA 3 1 1 $2
+_995._tcp.$1. IN TLSA 3 1 1 $2
 _995._tcp.mail.$1. IN TLSA 3 1 1 $2
-    "
+"
+}
+
+updated_webtlsa()
+{
+# adds 3 1 1 TLSA records for DOMAIN on ports 22 and 443
+echo "
+_22._tcp.$1. IN TLSA 3 1 1 $2
+_443._tcp.$1. IN TLSA 3 1 1 $2
+_443._tcp.www.$1. IN TLSA 3 1 1 $2
+"
 }
 
 while [ "$1" != "" ]; do
@@ -69,17 +78,23 @@ while [ "$1" != "" ]; do
                 ZONEFILE="$ZONEDIR/$DOMAIN"
                 UPDATEFILE="$UPDATEDIR/$DOMAIN"
                 NEWTLSA=$(openssl x509 -in $CERTDIR/$DOMAIN/fullchain.pem -noout -pubkey | openssl pkey -pubin -outform DER | openssl dgst -sha256 -binary | hexdump -ve '/1 "%02x"')
+                if [ -z "$MAILCERT" ]; then
+                MAILTLSA="$NEWTLSA"
+                else
+                MAILTLSA=$(openssl x509 -in $MAILCERT -noout -pubkey | openssl pkey -pubin -outform DER | openssl dgst -sha256 -binary | hexdump -ve '/1 "%02x"')
+                fi
                 OLDTLSA=$(cat "$ZONEFILE" | awk '/^;tlsa$/,/^;aslt$/{if (!/^;tlsa$/&&!/^;aslt$/)print}')
                 CLEANZONE=$(sed '/\;tlsa/,/\;aslt/d' "$ZONEFILE")
                 echo "$CLEANZONE" > $ZONEFILE
                 echo ';tlsa' >> $ZONEFILE
                 echo ";last update: $WHEN" >> $ZONEFILE
                 echo "$OLDTLSA" >> $ZONEFILE
-                updated_tlsa $DOMAIN $NEWTLSA >> $ZONEFILE
+                updated_webtlsa $DOMAIN $NEWTLSA >> $ZONEFILE
+                updated_mailtlsa $DOMAIN $MAILTLSA >> $ZONEFILE
                 echo ';aslt' >> $ZONEFILE
-                # this needs some refinement, replacing the serialnumber....
                 sed -i 's/20[0-1][0-9]\{7\}/'`date +%Y%m%d%I`'/Ig' $ZONEFILE
-                updated_tlsa $DOMAIN $NEWTLSA > $UPDATEFILE
+                updated_webtlsa $DOMAIN $NEWTLSA > $UPDATEFILE
+                updated_mailtlsa $DOMAIN $MAILTLSA >> $UPDATEFILE
             done
             systemctl reload bind9
                 exit
@@ -121,3 +136,4 @@ while [ "$1" != "" ]; do
     esac
     shift
 done
+
