@@ -5,21 +5,22 @@
 #		             it will check $ZONEFILE to create a new zone, and then create $UPDATEFILE
 #           		 with --update, it will check $UPDATEDIR and if a file is older than $WAITPERIOD (days)
 #                it will finish the update.
-#author          :Bjorn Peeters (Thutex) - https://peeters.io
-#date            :2017070801
-#version         :0.1    
-#usage		       :tlsa-updater.sh --new | --update
-#expects	       :"zonefile" needs to be named domain.ext, tlsa records (if already present)
+#author           :Bjorn Peeters (Thutex) - https://peeters.io
+#date           :2017070801
+#version           :0.1    
+#usage           :tlsa-updater.sh --new | --update
+#expects           :"zonefile" needs to be named domain.ext, tlsa records (if already present)
 #		             need to be between ;tlsa and ;aslt
 #notes           :May still contain bugs and lacks error checking
 #==============================================================================
 
 
 BINDDIR="/etc/bind"                   # directory to BIND
-CERTDIRT="/etc/letsencrypt/live"      # directory to where the latest certificates lie, without the domainname
+CERTDIR="/etc/letsencrypt/live"       # directory to where the latest certificates lie, without the domainname
+CCDIR=="/etc/letsencrypt/dane"        # directory where (for me) postfix looks for its current certificate, again without the domainname   
 ZONEDIR="$BINDDIR/zones"              # where do you save your zonefiles?
 UPDATEDIR="$BINDDIR/updating"         # create this directory! it will save the temporary file for the new TLSA records until its old enough (checked by the --update param)
-WAITPERIOD="259200"                 # time in seconds before updating zonefile with only the new records, default is 3 days
+WAITPERIOD="259200"                   # time in seconds before updating zonefile with only the new records, default is 3 days
 #RENEWED_DOMAINS="example.org" # only for testing or manual use, (this script is meant to be run as renew-hook with LE) - will change with future revisions
 
 ## here comes some really badly written but (normally) working code :)
@@ -99,12 +100,14 @@ while [ "$1" != "" ]; do
                 echo "$CLEANZONE" > $ZONEFILE
                 echo ';tlsa' >> $ZONEFILE
                 echo ";last update: $WHEN" >> $ZONEFILE
-                cat $DOMAIN >> $ZONEFILE
+                cat $FILE >> $ZONEFILE
                 echo ';aslt' >> $ZONEFILE
-                # this needs some refinement, replacing the serialnumber....
                 sed -i 's/20[0-1][0-9]\{7\}/'`date +%Y%m%d%I`'/Ig' $ZONEFILE
                 rm $FILE
                 systemctl reload bind9
+                rm $CCDIR/$DOMAIN/*
+                cp $CERTDIR/$DOMAIN/* $CCDIR/$DOMAIN/
+                systemctl reload postfix
                 fi
                 done
                 exit
