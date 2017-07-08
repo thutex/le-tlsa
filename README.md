@@ -17,7 +17,7 @@ This script assumes a few things for now:
 -> you use bind (and use inline-signing, there is no dnssec being done in this file)
 -> your machine uses systemd (systemctl) to reload daemons
 -> you know (somewhat) what you're doing (because at this stage, there is almost no error checking in the script)
-``
+```
 
 ## Usage
 
