@@ -17,7 +17,7 @@
 
 BINDDIR="/etc/bind"                   # directory to BIND
 CERTDIR="/etc/letsencrypt/live"       # directory to where the latest certificates lie, without the domainname
-CCDIR=="/etc/letsencrypt/dane"        # directory where (for me) postfix looks for its current certificate, again without the domainname   
+CCDIR="/etc/letsencrypt/dane"        # directory where (for me) postfix looks for its current certificate, again without the domainname   
 ZONEDIR="$BINDDIR/zones"              # where do you save your zonefiles?
 UPDATEDIR="$BINDDIR/updating"         # create this directory! it will save the temporary file for the new TLSA records until its old enough (checked by the --update param)
 WAITPERIOD="259200"                   # time in seconds before updating zonefile with only the new records, default is 3 days
@@ -105,8 +105,8 @@ while [ "$1" != "" ]; do
                 sed -i 's/20[0-1][0-9]\{7\}/'`date +%Y%m%d%I`'/Ig' $ZONEFILE
                 rm $FILE
                 systemctl reload bind9
-                rm $CCDIR/$DOMAIN/*
-                cp $CERTDIR/$DOMAIN/* $CCDIR/$DOMAIN/
+                rm -rf $CCDIR/$DOMAIN
+                cp -R $CERTDIR/$DOMAIN $CCDIR
                 systemctl reload postfix
                 fi
                 done
