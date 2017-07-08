@@ -6,7 +6,7 @@
 #           		 with --update, it will check $UPDATEDIR and if a file is older than $WAITPERIOD (days)
 #                it will finish the update.
 #author           :Bjorn Peeters (Thutex) - https://peeters.io
-#date           :2017070801
+#date           :2017-07-08
 #version           :0.2    
 #usage           :tlsa-updater.sh --new | --update
 #expects           :"zonefile" needs to be named domain.ext, tlsa records (if already present)
@@ -23,8 +23,6 @@ ZONEDIR="$BINDDIR/zones"              # where do you save your zonefiles?
 UPDATEDIR="$BINDDIR/updating"         # create this directory! it will save the temporary file for the new TLSA records until its old enough (checked by the --update param)
 WAITPERIOD="259200"                   # time in seconds before updating zonefile with only the new records, default is 3 days
 #RENEWED_DOMAINS="example.org" # only for testing or manual use, (this script is meant to be run as renew-hook with LE) - will change with future revisions
-
-## here comes some really badly written but (normally) working code :)
 
 usage()
 {
