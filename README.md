@@ -22,6 +22,7 @@ This script assumes a few things for now:
 ## Usage
 
 Preferably: after letsencrypt (using renew-hook from letsencrypt) and daily from cron (tlsa-updater.sh --update)
+
 Possibly: by setting and uncommenting "RENEWED_DOMAINS" to manually update a zone (will become an option someday)
 
 ## Authors
